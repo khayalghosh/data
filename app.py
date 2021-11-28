@@ -27,7 +27,7 @@ def setStaticIp():
     #print (dhcp_value)
     if dhcp_value=='False':
        print ("Changing ip address")
-       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name']), ipaddr=request_data['ipAddress'], mask=request_data['subnetMask'])
+       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        subprocess.run(command, capture_output=True, shell=True)
     #request_converted = json.loads(request_data)
     #print (request_converted)
