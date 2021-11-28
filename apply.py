@@ -12,6 +12,8 @@ import struct
 import json
 import os
 import subprocess
+from os import listdir
+from os.path import islink, realpath, join
 
 app = Flask(__name__)
 
@@ -22,25 +24,14 @@ def home():
 @app.route("/setstaticip",methods=['POST'])
 def setStaticIp():
     request_data = request.get_json()
-    print (type(request_data))
-    dhcp_value=str(request_data.get("dhcpEnabled"))
-    #print (dhcp_value)
-    if dhcp_value=='False':
-       print ("Changing ip address")
-       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name']), ipaddr=request_data['ipAddress'], mask=request_data['subnetMask'])
-       subprocess.run(command, capture_output=True, shell=True)
-    #request_converted = json.loads(request_data)
-    #print (request_converted)
-    return "ok"
-    #print (request_data)
-    # subprocess.run(["python3", "add.pyi"], text=True, input="2 3")
-#    exit_code = subprocess.call(['./practice.sh', static_ip])
-#    print(exit_code)
-#    if exit_code is 0: return ('Success', 204) 
-#    return ('Failed', 500) 
-#print (setStaticIp())
-#xyz=setStaticIp()
-#print(xyz)
+    static_ip = request_data['staticip']
+    print(static_ip)
+    # subprocess.run(["python3", "add.py"], text=True, input="2 3")
+    exit_code = subprocess.call(['./practice.sh', static_ip])
+    print(exit_code)
+    if exit_code is 0: return ('Success', 204) 
+    return ('Failed', 500) 
+
 @app.route("/getstaticip", methods=['GET'])
 def getStaticIp():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,9 +44,9 @@ def getStaticIp():
 @app.route("/getinterfaces", methods=['GET'])
 def getinterfaces():
     if_res_main = []
-    if_list = netifaces.interfaces()
+    if_list = interdiscover()
+    print (if_list)
     for if_name in if_list:
-        try: 
           if_data = {}
           # ip = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
           if_data['name'] = if_name
@@ -67,14 +58,29 @@ def getinterfaces():
           addr = netifaces.ifaddresses(if_name)
           if_data['dhcpEnabled'] = netifaces.AF_INET in addr
           if_data['dns'] = get_dns_settings()
+          if_data['status'] = interfacestatus(if_name)
           # print(if_data)
           if_res_main.append(if_data)
-        except:
-          print("ommiting")
     # print(if_res_main)
     return flask.jsonify(if_res_main)
 
+def chaddr(ipaddr,interface,netmask):
+    command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=interface, ipaddr=ipaddr, mask=netmask)
 
+
+def interdiscover():
+    all_interfaces = [i for i in listdir("/sys/class/net") if islink(join("/sys/class/net", i))]
+    phy_interfaces = [i for i in all_interfaces if not realpath(join("/sys/class/net", i)).startswith(("/sys/devices/virtual", "/sys/devices/vif"))]
+    return phy_interfaces
+
+def interfacestatus(name):
+    command = "sudo ethtool {}".format(name)
+    ret = subprocess.run(command, capture_output=True, shell=True)
+    x = ret.stdout.decode()
+    if "Link detected: yes" in x:
+        return "Online"
+    else:
+        return "Offline"
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
