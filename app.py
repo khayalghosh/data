@@ -28,18 +28,24 @@ def setStaticIp():
     if dhcp_value=='False':
        print ("Allocating static ip ")
 #       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
-       dhc_false_disable_cmd="sudo netplan set ethernets.{interface}.dhcp4={status}".format(request_data['name'],status="no")
+       dhc_false_disable_cmd="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="no")
        print(dhc_false_disable_cmd)
+       subprocess.run(dhc_false_disable_cmd, capture_output=True, shell=True)
        dhc_false_add_addr="sudo netplan set ethernets.{interface}.addresses=[{ipaddr}{mask}]".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        print(dhc_false_add_addr)
-       dhc_false_dns_list=request_data['nameservers']
+       subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
+       dhc_false_dns_list=request_data["dns"]['nameservers']
+       print (dhc_false_dns_list)
+       subprocess.run(dhc_false_dns_list, capture_output=True, shell=True)
        dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=dhc_false_dns_list[0])
        print (dhc_false_nameserver_add)
-       
-    elif: dhcp_value=="True":
+       subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
+       #dhc_false_gateway_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]"
+    elif dhcp_value=='True':
        print("Taking ip from DHCP")
        dhc_true_command="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="yes")       
        print(dhc_true_command)
+       subprocess.run(dhc_true_command, capture_output=True, shell=True)
        #subprocess.run(dhc_true_command, capture_output=True, shell=True
     #request_converted = json.loads(request_data)
     #print (request_converted)
