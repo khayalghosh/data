@@ -20,18 +20,20 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return "Flask server to set Static IP address!"
-
 @app.route("/setstaticip",methods=['POST'])
 def setStaticIp():
     request_data = request.get_json()
-    static_ip = request_data['staticip']
-    print(static_ip)
-    # subprocess.run(["python3", "add.py"], text=True, input="2 3")
-    exit_code = subprocess.call(['./practice.sh', static_ip])
-    print(exit_code)
-    if exit_code is 0: return ('Success', 204) 
-    return ('Failed', 500) 
+    print (type(request_data))
+    dhcp_value=str(request_data.get("dhcpEnabled"))
+    #print (dhcp_value)
+    if dhcp_value=='False':
+       print ("Changing ip address")
+       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name'], ipaddr=request_data['ipAddress'], mask=request_data['subnetMask'])
 
+       subprocess.run(command, capture_output=True, shell=True)
+    #request_converted = json.loads(request_data)
+    #print (request_converted)
+    return "ok"
 @app.route("/getstaticip", methods=['GET'])
 def getStaticIp():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
