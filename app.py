@@ -12,6 +12,8 @@ import struct
 import json
 import os
 import subprocess
+from os import listdir
+from os.path import islink, realpath, join
 
 app = Flask(__name__)
 
@@ -71,7 +73,7 @@ def getStaticIp():
 @app.route("/getinterfaces", methods=['GET'])
 def getinterfaces():
     if_res_main = []
-    if_list = netifaces.interfaces()
+    if_list = interdiscover()
     for if_name in if_list:
         try: 
           if_data = {}
@@ -85,6 +87,7 @@ def getinterfaces():
           addr = netifaces.ifaddresses(if_name)
           if_data['dhcpEnabled'] = netifaces.AF_INET in addr
           if_data['dns'] = get_dns_settings()
+          if_data['status'] = interfacestatus(if_name)
           # print(if_data)
           if_res_main.append(if_data)
         except:
@@ -92,7 +95,19 @@ def getinterfaces():
     # print(if_res_main)
     return flask.jsonify(if_res_main)
 
+def interdiscover():
+    all_interfaces = [i for i in listdir("/sys/class/net") if islink(join("/sys/class/net", i))]
+    phy_interfaces = [i for i in all_interfaces if not realpath(join("/sys/class/net", i)).startswith(("/sys/devices/virtual", "/sys/devices/vif"))]
+    return phy_interfaces
 
+def interfacestatus(name):
+    command = "sudo ethtool {}".format(name)
+    ret = subprocess.run(command, capture_output=True, shell=True)
+    x = ret.stdout.decode()
+    if "Link detected: yes" in x:
+        return "Online"
+    else:
+        return "Offline"
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -140,7 +155,7 @@ def get_dns_settings()->dict:
             elif line.strip().startswith('DNS-Suffix'):
                 dns_search = line.split(':')[1].strip()
 
-    return {'nameservers': dns_ns, 'search': dns_search}
+    return {'nameservers': dns_ns, 'auto': True}
 
 
 
