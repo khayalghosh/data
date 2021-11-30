@@ -46,16 +46,23 @@ def setStaticIp():
        print (dhc_false_gateway_add)
        subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
        print("**********************************************************Netplan Apply******************************************************************")
-       subprocess.run("sudo netplan generate")
+       #subprocess.run("sudo netplan generate")
+       apply_command="sudo netplan apply"
+       subprocess.run(apply_command, capture_output=True, shell=True
        subprocess.run("sudo netplan apply")
     elif dhcp_value=='True':
        print("Taking ip from DHCP")
        dhc_true_command="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="yes")       
-       print(dhc_true_command)
+       dhc_true_null_addr="sudo netplan set ethernets.{interface}.addresses={state}".format(interface=request_data['name'],state="null")
+       dhc_tru_null_nameserver="sudo netplan set ethernets.{interface}.nameservers.addresses={state}".format(interface=request_data['name'],state="null")
+       dhc_tru_null_gateway="sudo netplan set ethernets.{interface}.gateway4={state}".format(interface=request_data['name'],state="null")
        subprocess.run(dhc_true_command, capture_output=True, shell=True)
-       subprocess.run("sudo netplan generate")
-       subprocess.run("sudo netplan apply")
-       #subprocess.run(dhc_true_command, capture_output=True, shell=True
+       subprocess.run(dhc_true_null_addr, capture_output=True, shell=True)
+       subprocess.run(dhc_tru_null_nameserver, capture_output=True, shell=True)
+       subprocess.run(dhc_tru_null_gateway, capture_output=True, shell=True)
+       print(dhc_true_command,dhc_true_null_addr,dhc_tru_null_nameserver,dhc_tru_null_gateway)
+       apply_command="sudo netplan apply"
+       subprocess.run(apply_command, capture_output=True, shell=True)
     #request_converted = json.loads(request_data)
     #print (request_converted)
     return "ok"
