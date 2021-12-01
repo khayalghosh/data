@@ -49,6 +49,8 @@ def setStaticIp():
        #subprocess.run("sudo netplan generate")
        apply_command="sudo netplan apply"
        subprocess.run(apply_command, capture_output=True, shell=True)
+       print("Updating ip addreess in backend*********************** Please Wait")
+       subprocess.call(['sh', './service-restart.sh']) 
        #subprocess.run("sudo netplan apply")
     elif dhcp_value=='True':
        print("Taking ip from DHCP")
@@ -63,6 +65,8 @@ def setStaticIp():
        print(dhc_true_command,dhc_true_null_addr,dhc_tru_null_nameserver,dhc_tru_null_gateway)
        apply_command="sudo netplan apply"
        subprocess.run(apply_command, capture_output=True, shell=True)
+       print("Updating ip addreess in backend*********************** Please Wait")
+       subprocess.call(['sh', './service-restart.sh']) 
     #request_converted = json.loads(request_data)
     #print (request_converted)
     return "ok"
