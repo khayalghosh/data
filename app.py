@@ -39,12 +39,17 @@ def setStaticIp():
        dhc_false_add_addr="sudo netplan set ethernets.{interface}.addresses=[{ipaddr}/{mask}]".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        print(dhc_false_add_addr)
        subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
+       autoDns = request_data["dns"]["auto"]
        dhc_false_dns_list=request_data["dns"]['nameservers']
        print (dhc_false_dns_list)
-       subprocess.run(dhc_false_dns_list, capture_output=True, shell=True)
-       dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=dhc_false_dns_list)
-       print (dhc_false_nameserver_add)
-       subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
+       if autoDns == False:
+          dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=",".join(dhc_false_dns_list))
+          print (dhc_false_nameserver_add)
+          subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
+       else:
+          auto_dns_command="sudo netplan set ethernets.{interface}.nameservers.addresses={nameserver}".format(interface=request_data['name'],nameserver="null")
+          print ('setting nameservers null')
+          subprocess.run(auto_dns_command, capture_output=True, shell=True)
        dhc_false_gateway_add="sudo netplan set ethernets.{interface}.gateway4={gatewayaddr}".format(interface=request_data['name'],gatewayaddr=request_data['defaultGateway'])
        print (dhc_false_gateway_add)
        subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
