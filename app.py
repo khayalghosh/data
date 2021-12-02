@@ -35,43 +35,38 @@ def setStaticIp():
 #       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        dhc_false_disable_cmd="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="no")
        print(dhc_false_disable_cmd)
-       #subprocess.run(dhc_false_disable_cmd, capture_output=True, shell=True)
+       subprocess.run(dhc_false_disable_cmd, capture_output=True, shell=True)
        dhc_false_add_addr="sudo netplan set ethernets.{interface}.addresses=[{ipaddr}/{mask}]".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        print(dhc_false_add_addr)
-       #subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
+       subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
        dhc_false_dns_list=request_data["dns"]['nameservers']
        print (dhc_false_dns_list)
-       #subprocess.run(dhc_false_dns_list, capture_output=True, shell=True)
-       dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=dhc_false_dns_list[0])
+       subprocess.run(dhc_false_dns_list, capture_output=True, shell=True)
+       dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=dhc_false_dns_list)
        print (dhc_false_nameserver_add)
-       #subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
+       subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
        dhc_false_gateway_add="sudo netplan set ethernets.{interface}.gateway4={gatewayaddr}".format(interface=request_data['name'],gatewayaddr=request_data['defaultGateway'])
        print (dhc_false_gateway_add)
-       #subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
+       subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
        print("**********************************************************Netplan Apply******************************************************************")
        #subprocess.run("sudo netplan generate")
-       apply_command="sudo netplan apply"
-       #subprocess.run(apply_command, capture_output=True, shell=True)
        print("Updating ip addreess in backend*********************** Please Wait")
        #subprocess.call(['sh', './service-restart.sh']) 
        #Popen(['/bin/sh', './service-restart.sh')
        pool = multiprocessing.Pool(processes=1)
        pool.apply_async(chconfig)
-       subprocess.run("sudo netplan apply")
+       #subprocess.run("sudo netplan apply")
     elif dhcp_value=='True':
        print("Taking ip from DHCP")
        dhc_true_command="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="yes")       
        dhc_true_null_addr="sudo netplan set ethernets.{interface}.addresses={state}".format(interface=request_data['name'],state="null")
        dhc_tru_null_nameserver="sudo netplan set ethernets.{interface}.nameservers.addresses={state}".format(interface=request_data['name'],state="null")
        dhc_tru_null_gateway="sudo netplan set ethernets.{interface}.gateway4={state}".format(interface=request_data['name'],state="null")
-       #subprocess.run(dhc_true_command, capture_output=True, shell=True)
-       #subprocess.run(dhc_true_null_addr, capture_output=True, shell=True)
-       #subprocess.run(dhc_tru_null_nameserver, capture_output=True, shell=True)
-       #subprocess.run(dhc_tru_null_gateway, capture_output=True, shell=True)
+       subprocess.run(dhc_true_command, capture_output=True, shell=True)
+       subprocess.run(dhc_true_null_addr, capture_output=True, shell=True)
+       subprocess.run(dhc_tru_null_nameserver, capture_output=True, shell=True)
+       subprocess.run(dhc_tru_null_gateway, capture_output=True, shell=True)
        print(dhc_true_command,dhc_true_null_addr,dhc_tru_null_nameserver,dhc_tru_null_gateway)
-       #apply_command="sudo netplan apply"
-       #thread_a=Thread(chconfig())
-       #subprocess.run(apply_command, capture_output=True, shell=True)
        print("Updating ip addreess in backend*********************** Please Wait")
        pool = multiprocessing.Pool(processes=1)
        pool.apply_async(chconfig)
@@ -113,7 +108,7 @@ def getinterfaces():
           if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
           addr = netifaces.ifaddresses(if_name)
           if_data['dhcpEnabled'] = dhcpstatus(if_name)
-          if_data['dns'] = get_dns_settings(if_name)
+          if_data['dns']= get_dns_settings(if_name)
           if_data['status'] = interfacestatus(if_name)
           # print(if_data)
           if_res_main.append(if_data)
@@ -130,9 +125,9 @@ def dhcpstatus(intname):
     dhc_status = subprocess.run(dhc_command, capture_output=True, shell=True)
     x = dhc_status.stdout.decode()
     if "dhcp4: false" in x:
-        return "false"
+        return False
     else:
-        return "true"
+        return True
 
 def interfacestatus(ifname):
     command = "sudo ethtool {}".format(ifname)
@@ -148,15 +143,17 @@ def getHwAddr(ifname):
     info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
     return ':'.join('%02x' % b for b in info[18:24])
 
-def get_dns_settings(ifname):
+def get_dns_settings(ifname)-> dict:
     x=[]
     command = "sudo netplan get ethernets.{}.nameservers.addresses".format(ifname)
     ret = subprocess.run(command, capture_output=True, shell=True)
     x=ret.stdout.decode()
     z=re.findall( r'[0-9]+(?:\.[0-9]+){3}', x)
-    return z
+    return { 'nameservers': z, 'auto': len(z) == 0 }
 
 def chconfig():
+    apply_command="sudo netplan apply"
+    subprocess.run(apply_command, capture_output=True, shell=True)
     subprocess.call(['sh', 'service-restart.sh'])
     return "shell executed succiessfully"
 
