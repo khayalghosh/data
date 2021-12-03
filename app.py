@@ -107,8 +107,16 @@ def getinterfaces():
           # ip = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
           if_data['name'] = if_name
           if_data['macAddress'] = getHwAddr(if_name)
-          if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
-          if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
+#          if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
+#          if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
+          try:
+              if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
+          except:
+              if_data['subnetMask'] = "null"
+          try:
+              if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
+          except:
+              if_data['ipAddress'] = "null"
           gws=netifaces.gateways()
           if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
           addr = netifaces.ifaddresses(if_name)
