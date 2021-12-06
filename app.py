@@ -112,11 +112,11 @@ def getinterfaces():
           try:
               if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
           except:
-              if_data['subnetMask'] = "null"
+              if_data['subnetMask'] = ""
           try:
               if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
           except:
-              if_data['ipAddress'] = "null"
+              if_data['ipAddress'] = ""
           gws=netifaces.gateways()
           if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
           addr = netifaces.ifaddresses(if_name)
