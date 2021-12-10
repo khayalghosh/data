@@ -105,20 +105,19 @@ def getinterfaces():
           if_data['macAddress'] = getHwAddr(if_name)
 #          if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
 #          if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
-          try:
-              if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
-          except:
-              if_data['subnetMask'] = ""
-          try:
-              if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
-          except:
-              if_data['ipAddress'] = ""
-          gws=netifaces.gateways()
-          if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
-          addr = netifaces.ifaddresses(if_name)
+          status = interfacestatus(if_name)
+          if_data['status'] = status
+          if status == 'Online':
+            if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
+            if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
+            gws=netifaces.gateways()
+            if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
+          else:
+            if_data['subnetMask'] = "None"
+            if_data['ipAddress'] = "None"
+            if_data['defaultGateway'] = "None"
           if_data['dhcpEnabled'] = dhcpstatus(if_name)
           if_data['dns']= get_dns_settings(if_name)
-          if_data['status'] = interfacestatus(if_name)
           # print(if_data)
           if_res_main.append(if_data)
     # print(if_res_main)
