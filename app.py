@@ -110,6 +110,12 @@ def getinterfaces():
           if status == 'Online':
             if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
             if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
+            command_check_primary="hostname -I | cut -d' ' -f1"
+            op=subprocess.run(command_check_primary, capture_output=True, shell=True)
+            if if_data['ipAddress']==op.stdout.decode().rstrip("\n"):
+                if_data['primary']= True
+            else:
+                if_data['primary']= False
             gws=netifaces.gateways()
             if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
           else:
