@@ -29,10 +29,8 @@ def setStaticIp():
     request_data = request.get_json()
     print (request_data)
     dhcp_value=str(request_data.get("dhcpEnabled"))
-    #print (dhcp_value)
     if dhcp_value=='False':
        print ("Allocating static ip ")
-#       command = "sudo ifconfig {interface} {ipaddr} netmask {mask}".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        dhc_false_add_addr="sudo netplan set ethernets.{interface}.addresses=[{ipaddr}/{mask}]".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        print(dhc_false_add_addr)
        subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
@@ -71,19 +69,7 @@ def setStaticIp():
        print("Updating ip addreess in backend*********************** Please Wait")
        pool = multiprocessing.Pool(processes=1)
        pool.apply_async(chconfig)
-       #p = Popen(['/bin/sh','service-restart.sh'])
-    #request_converted = json.loads(request_data)
-    #print (request_converted)
     return "Response from fask", 200
-    #print (request_data)
-    # subprocess.run(["python3
-#    exit_code = subprocess.call(['./practice.sh', static_ip])
-#    print(exit_code)
-#    if exit_code is 0: return ('Success', 204) 
-#    return ('Failed', 500) 
-#print (setStaticIp())
-#xyz=setStaticIp()
-#print(xyz)
 
 @app.route("/getstaticip", methods=['GET'])
 def getStaticIp():
@@ -100,22 +86,19 @@ def getinterfaces():
     if_list = interdiscover()
     for if_name in if_list:
           if_data = {}
-          # ip = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
           if_data['name'] = if_name
           if_data['macAddress'] = getHwAddr(if_name)
-#          if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
-#          if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
           status = interfacestatus(if_name)
           if_data['status'] = status
           if status == 'Online':
             if_data['subnetMask'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['netmask']
             if_data['ipAddress'] = netifaces.ifaddresses(if_name)[netifaces.AF_INET][0]['addr']
-            command_check_primary="hostname -I | cut -d' ' -f1"
-            op=subprocess.run(command_check_primary, capture_output=True, shell=True)
-            if if_data['ipAddress']==op.stdout.decode().rstrip("\n"):
-                if_data['primary']= True
-            else:
-                if_data['primary']= False
+          #  command_check_primary="hostname -I | cut -d' ' -f1"
+          #  op=subprocess.run(command_check_primary, capture_output=True, shell=True)
+          #  if if_data['ipAddress']==op.stdout.decode().rstrip("\n"):
+          #      if_data['primary']= True
+          #  else:
+          #      if_data['primary']= False
             gws=netifaces.gateways()
             if_data['defaultGateway'] = gws['default'][netifaces.AF_INET][0]
           else:
@@ -124,9 +107,7 @@ def getinterfaces():
             if_data['defaultGateway'] = "None"
           if_data['dhcpEnabled'] = dhcpstatus(if_name)
           if_data['dns']= get_dns_settings(if_name)
-          # print(if_data)
           if_res_main.append(if_data)
-    # print(if_res_main)
     return flask.jsonify(if_res_main)
 
 def interdiscover():
