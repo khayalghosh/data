@@ -6,10 +6,10 @@ import netifaces
 import subprocess
 from flask.globals import request
 from uuid import getnode as get_mac
+from threading import Thread
 import fcntl
 import socket
 import struct
-from threading import Thread
 import json
 import os
 import subprocess
