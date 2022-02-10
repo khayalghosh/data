@@ -14,6 +14,8 @@ from os.path import islink, realpath, join
 import re
 import multiprocessing
 
+from validator import isValidPayload
+
 cli = sys.modules['flask.cli']
 cli.show_server_banner = lambda *x: None
 
@@ -68,7 +70,12 @@ def applyFactoryReset():
 @app.route("/changeSettings",methods=['POST'])
 def setStaticIp():
     request_data = request.get_json()
+
     print (request_data)
+    valid_payload = isValidPayload(request_data)
+    if not valid_payload :
+        return jsonify({'status': 400, 'message': "Bad Request. Payload is not Valid!"}), 400
+
     dhcp_value=str(request_data.get("dhcpEnabled"))
     if dhcp_value=='False':
        print ("Allocating static ip ")
