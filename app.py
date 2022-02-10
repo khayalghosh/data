@@ -1,5 +1,5 @@
 from pydoc import text
-from flask import Flask
+from flask import Flask, jsonify
 import socket
 import flask
 import netifaces
@@ -7,22 +7,63 @@ import subprocess
 from flask.globals import request
 from uuid import getnode as get_mac
 from threading import Thread
-import fcntl
-import socket
-import struct
-import json
-import os
+import os, sys, json, struct, socket, fcntl, time
 import subprocess
 from os import listdir
 from os.path import islink, realpath, join
 import re
 import multiprocessing
 
+cli = sys.modules['flask.cli']
+cli.show_server_banner = lambda *x: None
+
+if "OBB_HOME" in os.environ:
+    obb_home = os.environ["OBB_HOME"]
+    reset_cmd = "make delete && make validate && sleep 5 && make deploy"
+else:
+    obb_home = "/opt/jci-obb"
+    reset_cmd = "make delete && make validate && sleep 5 && make factory-deploy"
+
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "Flask server to set Static IP address!"
+@app.route('/')
+def index():
+    return '', 200
+
+@app.route("/ping")
+def ping():
+    return jsonify({"status": "OK"}), 200
+
+
+@app.post("/api/systemRestart")
+def applyRestart():
+    status = request.args.get('apply')
+    if status == "true":
+        def post_request_systemRestart():
+            reboot_cmd = "sudo reboot"
+            #reboot_cmd = "echo 'System Reboot'"
+            time.sleep(10)
+            subprocess.run([reboot_cmd],shell=True)
+        threadRestart = Thread(target=post_request_systemRestart)
+        threadRestart.start()
+        return jsonify({'status': 202, 'message': "System Reboot Initiated Successfully"}), 202
+    else:
+        return jsonify({'status': 400, 'message': "Bad Request"}), 400
+
+@app.post("/api/factoryReset")
+def applyFactoryReset():
+    status = request.args.get('apply')
+    if status == "true":
+        def post_request_factoryReset():
+            factoryReset_cmd = "cd {} && {}".format(obb_home,reset_cmd)
+            #factoryReset_cmd = "echo 'Factory Reset'"
+            time.sleep(10)
+            subprocess.run([factoryReset_cmd],shell=True)
+        threadReset = Thread(target=post_request_factoryReset)
+        threadReset.start()
+        return jsonify({'status': 202, 'message': "Factory Reset Initiated Successfully"}), 202
+    else:
+        return jsonify({'status': 400, 'message': "Bad Request"}), 400
 
 @app.route("/changeSettings",methods=['POST'])
 def setStaticIp():
@@ -153,5 +194,4 @@ def chconfig():
     return "shell executed succiessfully"
 
 if __name__ =='__main__':  
-    app.run(debug = True, host='0.0.0.0', port=8099)
-
+    app.run(debug = False, host='0.0.0.0', port=8099)
