@@ -14,7 +14,6 @@ from os.path import islink, realpath, join
 import re
 import multiprocessing
 
-from validator import isValidPayload
 
 cli = sys.modules['flask.cli']
 cli.show_server_banner = lambda *x: None
@@ -45,7 +44,7 @@ def applyRestart():
             reboot_cmd = "sudo reboot"
             #reboot_cmd = "echo 'System Reboot'"
             time.sleep(10)
-            subprocess.run([reboot_cmd],shell=True)
+            #subprocess.run([reboot_cmd],shell=True)
         threadRestart = Thread(target=post_request_systemRestart)
         threadRestart.start()
         return jsonify({'status': 202, 'message': "System Reboot Initiated Successfully"}), 202
@@ -60,7 +59,7 @@ def applyFactoryReset():
             factoryReset_cmd = "cd {} && {}".format(obb_home,reset_cmd)
             #factoryReset_cmd = "echo 'Factory Reset'"
             time.sleep(10)
-            subprocess.run([factoryReset_cmd],shell=True)
+            #subprocess.run([factoryReset_cmd],shell=True)
         threadReset = Thread(target=post_request_factoryReset)
         threadReset.start()
         return jsonify({'status': 202, 'message': "Factory Reset Initiated Successfully"}), 202
@@ -81,25 +80,25 @@ def setStaticIp():
        print ("Allocating static ip ")
        dhc_false_add_addr="sudo netplan set ethernets.{interface}.addresses=[{ipaddr}/{mask}]".format(interface=request_data['name'],ipaddr=request_data['ipAddress'],mask=request_data['subnetMask'])
        print(dhc_false_add_addr)
-       subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
+       #subprocess.run(dhc_false_add_addr, capture_output=True, shell=True)
        autoDns = request_data["dns"]["auto"]
        dhc_false_dns_list=request_data["dns"]['nameservers']
        print (dhc_false_dns_list)
        if autoDns == False:
           dhc_false_nameserver_add="sudo netplan set ethernets.{interface}.nameservers.addresses=[{nameserver}]".format(interface=request_data['name'],nameserver=",".join(dhc_false_dns_list))
           print (dhc_false_nameserver_add)
-          subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
+          #subprocess.run(dhc_false_nameserver_add, capture_output=True, shell=True)
        else:
           auto_dns_command="sudo netplan set ethernets.{interface}.nameservers.addresses={nameserver}".format(interface=request_data['name'],nameserver="null")
           print ('setting nameservers null')
-          subprocess.run(auto_dns_command, capture_output=True, shell=True)
+          #subprocess.run(auto_dns_command, capture_output=True, shell=True)
        dhc_false_gateway_add="sudo netplan set ethernets.{interface}.gateway4={gatewayaddr}".format(interface=request_data['name'],gatewayaddr=request_data['defaultGateway'])
        print (dhc_false_gateway_add)
-       subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
+       #subprocess.run(dhc_false_gateway_add, capture_output=True, shell=True)
        print("**********************************************************Netplan Apply******************************************************************")
        print("Updating ip addreess in backend*********************** Please Wait")
        dhc_false_disable_cmd="sudo netplan set ethernets.{interface}.dhcp4={status}".format(interface=request_data['name'],status="no")
-       subprocess.run(dhc_false_disable_cmd, capture_output=True, shell=True)
+       #subprocess.run(dhc_false_disable_cmd, capture_output=True, shell=True)
        print(dhc_false_disable_cmd)
        pool = multiprocessing.Pool(processes=1)
        pool.apply_async(chconfig)
@@ -109,10 +108,10 @@ def setStaticIp():
        dhc_true_null_addr="sudo netplan set ethernets.{interface}.addresses={state}".format(interface=request_data['name'],state="null")
        dhc_tru_null_nameserver="sudo netplan set ethernets.{interface}.nameservers.addresses={state}".format(interface=request_data['name'],state="null")
        dhc_tru_null_gateway="sudo netplan set ethernets.{interface}.gateway4={state}".format(interface=request_data['name'],state="null")
-       subprocess.run(dhc_true_command, capture_output=True, shell=True)
-       subprocess.run(dhc_true_null_addr, capture_output=True, shell=True)
-       subprocess.run(dhc_tru_null_nameserver, capture_output=True, shell=True)
-       subprocess.run(dhc_tru_null_gateway, capture_output=True, shell=True)
+       #subprocess.run(dhc_true_command, capture_output=True, shell=True)
+       #subprocess.run(dhc_true_null_addr, capture_output=True, shell=True)
+       #subprocess.run(dhc_tru_null_nameserver, capture_output=True, shell=True)
+       #subprocess.run(dhc_tru_null_gateway, capture_output=True, shell=True)
        print(dhc_true_command,dhc_true_null_addr,dhc_tru_null_nameserver,dhc_tru_null_gateway)
        print("Updating ip addreess in backend*********************** Please Wait")
        pool = multiprocessing.Pool(processes=1)
@@ -196,9 +195,41 @@ def get_dns_settings(ifname)-> dict:
 
 def chconfig():
     apply_command="sudo netplan apply"
-    subprocess.run(apply_command, capture_output=True, shell=True)
-    subprocess.call(['sh', 'service-restart.sh'])
+    #subprocess.run(apply_command, capture_output=True, shell=True)
+    #subprocess.call(['sh', 'service-restart.sh'])
     return "shell executed succiessfully"
 
+
+def isValidPayload(request_data):
+
+    bool_array = ["True" , "False"]
+    dhcpEnabled = str(request_data.get("dhcpEnabled"))
+    autoDns = str(request_data["dns"]["auto"])
+    
+    if(dhcpEnabled not in bool_array):
+        return False
+
+    if(autoDns not in bool_array):
+        return False
+
+    if(not str(request_data.get("name")).isalnum):
+        return False
+
+    if(not str(request_data.get("subnetMask")).isdecimal):
+        return False
+        
+    try:
+        socket.inet_aton(request_data.get("ipAddress"))
+        socket.inet_aton(request_data.get("defaultGateway"))
+        dns_nameservers_list=request_data["dns"]["nameservers"]
+        for nameserver in dns_nameservers_list:
+            socket.inet_aton(nameserver)
+    except:
+         return False
+
+    return True
+
+
 if __name__ =='__main__':  
-    app.run(debug = False, host='0.0.0.0', port=8099)
+    app.run(debug = False, host='0.0.0.0', port=9922)
+
