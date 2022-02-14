@@ -13,7 +13,7 @@ from os import listdir
 from os.path import islink, realpath, join
 import re
 import multiprocessing
-
+import ipaddress
 
 cli = sys.modules['flask.cli']
 cli.show_server_banner = lambda *x: None
@@ -198,33 +198,40 @@ def chconfig():
     #subprocess.run(apply_command, capture_output=True, shell=True)
     #subprocess.call(['sh', 'service-restart.sh'])
     return "shell executed succiessfully"
-
+def check_ipaddress(Ip):
+    regex = "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
+    # pass the regular expression
+    # and the string in search() method
+    if(re.search(regex, Ip)):
+        return True     
+    else:
+        return False
 
 def isValidPayload(request_data):
 
     bool_array = ["True" , "False"]
     dhcpEnabled = str(request_data.get("dhcpEnabled"))
     autoDns = str(request_data["dns"]["auto"])
-    
+    interface_list = interdiscover()
+
     if(dhcpEnabled not in bool_array):
         return False
 
     if(autoDns not in bool_array):
         return False
 
-    if(not str(request_data.get("name")).isalnum):
+    if(not str(request_data.get("name")) in interface_list):
         return False
 
     if(not str(request_data.get("subnetMask")).isdecimal):
         return False
-        
     try:
-        socket.inet_aton(request_data.get("ipAddress"))
-        socket.inet_aton(request_data.get("defaultGateway"))
+        ipaddress.ip_address(str(request_data.get("ipAddress")))
+        ipaddress.ip_address(str(request_data.get("defaultGateway")))
         dns_nameservers_list=request_data["dns"]["nameservers"]
         for nameserver in dns_nameservers_list:
-            socket.inet_aton(nameserver)
-    except:
+            ipaddress.ip_address(nameserver)    
+    except ValueError:
          return False
 
     return True
