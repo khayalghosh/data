@@ -66,7 +66,7 @@ def applyFactoryReset():
     else:
         return jsonify({'status': 400, 'message': "Bad Request"}), 400
 
-@app.route("/api/changeSettings",methods=['POST'])
+@app.route("/changeSettings",methods=['POST'])
 def setStaticIp():
     request_data = request.get_json()
 
