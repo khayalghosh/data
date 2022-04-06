@@ -1,0 +1,14 @@
+#!/bin/bash
+
+PRODUCT_HOME="/opt/jci-interface"
+NAME="obb"
+
+case "$1" in
+  remove|purge|abort-install)
+	if [ -d /opt/jci-interfaces ];
+	then
+		su - ${NAME} -c "rm -rf ${PRODUCT_HOME}/*"
+		#su - ${NAME} -c "rm -rf ${PRODUCT_HOME}/install.log"
+	fi
+  ;;
+esac

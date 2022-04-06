@@ -1,0 +1,21 @@
+#!/bin/bash
+PRODUCT_HOME="/opt/jci-interface"
+NAME="obb"
+
+# if [ "$1" = "upgrade" ] && [ -d /opt/jci-interface ];
+# then
+#   	#stop iotech service
+# 	#sudo systemctl stop xrt
+# 	deb-systemd-invoke stop 'jci-interface' >/dev/null || true
+# fi
+
+case "$1" in
+  remove|purge)
+	if [ -d /opt/jci-interface ];
+	then
+		#sudo systemctl stop jci-interface
+		deb-systemd-invoke stop 'jci-interface' >/dev/null || true
+		#su - ${NAME} -c "rm -rf ${PRODUCT_HOME}/install.log"
+	fi
+  ;;
+esac

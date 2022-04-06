@@ -1,0 +1,6 @@
+deb-build:
+  build: .
+  command: bash ./build-debian.sh jci-interface 1.0.0
+  volumes:
+    - ./:/debian
+  working_dir: /debian

@@ -1,0 +1,17 @@
+#!/bin/bash
+action=$1
+version=$2
+
+PRODUCT_HOME="/opt/jci-interface"
+NAME="obb"
+
+# if [ "$1" = "upgrade" ] && [ -d /opt/jci-obb ];
+# then
+#   #sudo apt-mark unhold containerd.io || true
+#   #sudo apt-mark unhold docker-ce || true
+#   #sudo apt-mark unhold docker-ce-cli || true
+#   #echo
+# 	# echo "[ WARN ] jci-obb product has been installed previously."
+#   # echo "         If you want to install obb product please remove existing __PRODUCT__ and try again."
+#   # echo
+# fi

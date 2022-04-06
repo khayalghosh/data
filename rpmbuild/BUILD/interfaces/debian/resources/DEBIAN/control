@@ -1,0 +1,12 @@
+Source: __PRODUCT__
+Section: admin
+Priority: optional
+Maintainer: Vasanth KG <vasanth.kg@jci.com>
+Version: __VERSION__
+Homepage: https://www.johnsoncontrols.com/openblue
+Package: __PRODUCT__
+Architecture: amd64
+Depends: python3-setuptools
+Installed-Size: __PRODUCT_SIZE__
+Description: OpenBlue Bridge (OBB) - Network Settings API
+ Network Settings API

@@ -1,0 +1,14 @@
+node('linux-slave') {
+    checkout scm
+    def releaseVersion = sh(returnStdout: true, script: "grep -i '__VERSION__' interfaces/version.txt").toString().trim()
+    def (name, relVersion) = "${releaseVersion}".trim().split("=") 
+    def currentVersion = "${relVersion}".trim()
+    def debReleaseRepo = "obb-ga-debian-release"; 
+
+    def build = load("interfaces/debian/build.groovy")
+    try {
+        build.execute(currentVersion,debReleaseRepo)
+    } catch(Exception e) {
+        throw e
+    }
+}

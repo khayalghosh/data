@@ -1,0 +1,51 @@
+#!/bin/bash
+
+PRODUCT_HOME="/opt/jci-interface"
+NAME="obb"
+
+action="$1"
+oldversion="$2"
+
+set_obb_permission()
+{
+	if ! getent passwd ${NAME} >/dev/null; then
+        sudo adduser --system --quiet ${NAME}
+    fi
+	if ! getent group ${NAME} >/dev/null; then
+        sudo addgroup --system --quiet ${NAME}
+    fi
+	#Chnage permission to USER/GROUP
+	sudo chown -R ${NAME}:${NAME} ${PRODUCT_HOME} && \
+	sudo chmod -R 755 ${PRODUCT_HOME}
+	#chgrp -R ${NAME} ${PRODUCT_HOME}
+}
+
+
+
+if [ "$1" = "configure" ];
+then
+	### INSTALL OBB PRODUCT
+	set_obb_permission && \
+	echo "${NAME}  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${NAME} > /dev/null
+	su - ${NAME} -s /bin/bash -c "cd ${PRODUCT_HOME} && bash ./install.sh </dev/null > ${PRODUCT_HOME}/install.log 2>&1"
+	sudo systemctl daemon-reload
+	sudo systemctl enable jci-interface.service
+	sudo systemctl start jci-interface.service
+	# if [[ $? -eq 0 ]];
+	# then
+	# 	echo "[ Info ] The OpenBlue Bridge - Network Settings API Interfaces."
+	# 	echo "[ Info ] Installer will now run in background, you can view the installer logs @ ${PRODUCT_HOME}/install.log"
+	# 	echo "Use below command : "
+	# 	echo "tail -f ${PRODUCT_HOME}/install.log"
+	# 	echo
+	# 	sleep 1;
+	# else
+	# 	echo
+	# 	echo "[ ERROR ] Unable to run the OBB installer ...!"
+	# 	echo
+	# 	exit 1;
+	# fi
+fi
+if [ "$1" = "abort-upgrade" ]; then
+	echo "Aborting the upgrade."
+fi
