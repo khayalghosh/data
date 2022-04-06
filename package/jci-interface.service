@@ -1,0 +1,13 @@
+[Unit]
+Description=JCI OBB - Network Settings API Interface
+After=network-online.target
+
+[Service]
+User=obb
+WorkingDirectory=/opt/jci-interface
+ExecStart=/bin/bash -c 'cd /opt/jci-interface/bin && python3 app.py'
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
