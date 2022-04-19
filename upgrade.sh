@@ -233,56 +233,6 @@ then
         --set ingress.oAuth=${INGRESS_AUTH} 3>&1 1>/dev/null 2>&3- 
         # --set extraArgs.hostIp="${K8S_API_SERVER_HOST}" --set extraArgs.clusterApiServer="${K8S_API_SERVER_URL}" \
 
-    elif [[ "${RELEASE_NAME}" =~ .*"connector".* ]];
-    then
-      if [[ "${VAULT_STATUS}" = true ]];
-      then
-        IOTHUB_CONNECTION_TYPE=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"${RELEASE_NAME}\"][\"type\"]" ${CURDIR}/../secrets.yaml)
-        if [ ${IOTHUB_CONNECTION_TYPE} == "string" ];
-        then
-          CONNECTION_URL=$(sops --decrypt --extract "[\"cluster\"][\"secrets\"][\"${RELEASE_NAME}\"][\"connection-url\"]" ${CURDIR}/../secrets.yaml)
-        else
-          IOTHUB_CERT_PASWORD=$(sops --decrypt --extract "[\"cluster\"][\"secrets\"][\"${RELEASE_NAME}\"][\"iothub-cert-password\"]" ${CURDIR}/../secrets.yaml)
-          IOTHUB_CERT_PATH=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"${RELEASE_NAME}\"][\"iothub-cert-path\"]" ${CURDIR}/../secrets.yaml)
-          IOTHUB_HOST_NAME=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"${RELEASE_NAME}\"][\"iothub-host-name\"]" ${CURDIR}/../secrets.yaml)
-          IOTHUB_DEVICE_NAME=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"${RELEASE_NAME}\"][\"iothub-device-name\"]" ${CURDIR}/../secrets.yaml)
-          [ -f "${IOTHUB_CERT_PATH}" ] && IOTHUB_CERT_CONTENT="$(cat ${IOTHUB_CERT_PATH} | openssl base64)" || ( echo " [ ERROR ] IOTHUB cert not found."; exit 1)
-        fi
-        #### Add the script to inject value to Vualt ####
-        export VAULT_KEYSTORE_PATH="${HOME}/.obb"
-        export VAULT_TOKEN="$(cat ${VAULT_KEYSTORE_PATH}/vault/vaultkeys | jq -r '.root_token')"
-        kubectl exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && vault secrets enable -path=${RELEASE_NAME} kv-v2" 3>&1 1>/dev/null 2>&3- 
-        if [ ${IOTHUB_CONNECTION_TYPE} == "string" ];
-        then 
-          kubectl exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && \
-          vault kv put ${RELEASE_NAME}/iothub connectionString=\"${CONNECTION_URL}\"" 3>&1 1>/dev/null 2>&3- 
-        else 
-          kubectl exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && \
-          vault kv put ${RELEASE_NAME}/iothub iothubHostName=\"${IOTHUB_HOST_NAME}\" \
-          iothubDeviceName=\"${IOTHUB_DEVICE_NAME}\" iothubCertPassword=\"${IOTHUB_CERT_PASWORD}\" \
-          iothubCertificate=\"${IOTHUB_CERT_CONTENT}\"" 3>&1 1>/dev/null 2>&3- 
-        fi
-        if [  $? -ne 0 ];
-        then 
-          echo "[ ERROR ] Unable to load the data into VAULT ...!"
-          exit 1;
-        fi
-        kubectl exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && vault policy write ${RELEASE_NAME} - <<EOF
-            path \"${RELEASE_NAME}/data/iothub\" {
-            capabilities = [\"read\"]
-          }
-EOF"
-        kubectl exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && vault write auth/kubernetes/role/${RELEASE_NAME} \
-            bound_service_account_names=${RELEASE_NAME} \
-            bound_service_account_namespaces=${cluster_namespace} \
-            policies=${RELEASE_NAME} \
-            ttl=24h"
-      fi
-      echo "[ INFO ] Upgrading ${RELEASE_NAME} to v${VERSION} ...!"
-      helm secrets upgrade --install --wait --timeout 300s ${RELEASE_NAME} openbluebridge/${CHART} --version ${VERSION} --namespace ${cluster_namespace} \
-      --set ingHostnameOverride="${cluster_domain_name}" --set ingSecretOverride="mayflower-ingress-cert" \
-      --set service.type=${SERVICETYPE} --set vault.enabled=${VAULT_STATUS} -f ${CURDIR}/../secrets.yaml 3>&1 1>/dev/null 2>&3- 
-    
     elif [[ "${RELEASE_NAME}" == "helm-api" ]];
     then
         echo "[ INFO ] Upgrading ${RELEASE_NAME} to v${VERSION} ...!"
