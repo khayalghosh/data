@@ -219,7 +219,40 @@ then
       helm secrets upgrade --install --wait --timeout 300s ${RELEASE_NAME} openbluebridge/${CHART} --version ${VERSION} --namespace ${cluster_namespace} \
       --set ingHostnameOverride="${cluster_domain_name}" --set ingSecretOverride="mayflower-ingress-cert" \
       --set ingress.oAuth=${INGRESS_AUTH} --set service.type=${SERVICETYPE} 3>&1 1>/dev/null 2>&3- 
-    
+      
+    elif [ "${RELEASE_NAME}" == "connector" ]; 
+    then
+        CONNECTOR_LIST="$(kubectl get deployments -l app=connector --no-headers=true | awk {'print $1'})"
+        CONNECTOR_VERSION="$(cat ${CURDIR}/../config.yml | grep -i connector | tr -d ' ' | awk -F ":" {'print $(NF)'})"
+        for CONNECTOR_RELEASE_NAME in ${CONNECTOR_LIST}
+        do
+          #Enable kube config secrets for vault
+          export VAULT_KEYSTORE_PATH="${HOME}/.obb"
+          export VAULT_TOKEN="$(cat ${VAULT_KEYSTORE_PATH}/vault/vaultkeys | jq -r '.root_token')"
+          kubectl -n ${cluster_namespace} exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && vault write auth/kubernetes/config \
+              issuer=\"https://kubernetes.default.svc.cluster.local\" \
+              disable_iss_validation=\"true\" \
+              token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" \
+              kubernetes_host=\"https://\$KUBERNETES_PORT_443_TCP_ADDR:443\" \
+              kubernetes_ca_cert=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)\"" > /dev/null 2>&1
+
+          #CURR_CONNECTOR_VER="$(helm ls --skip-headers -o json -f ${CONNECTOR_RELEASE_NAME} | jq -r .[].chart | awk -F '-' {'print $(NF)'})"
+          CURR_CONNECTOR_VER="$(helm ls --skip-headers | grep -w ${CONNECTOR_RELEASE_NAME} | awk {'print $(NF-1)'} | awk -F '-' {'print $(NF)'})"
+          if [ ! -z "$CURR_CONNECTOR_VER" ];
+          then 
+            IOTHUB_CONNECTION_TYPE=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"connector\"][\"type\"]" ${CURDIR}/../secrets.yaml)        
+            echo "[ INFO ] Upgrading ${CONNECTOR_RELEASE_NAME} to v${CONNECTOR_VERSION} ...!"
+            helm upgrade --install --wait ${CONNECTOR_RELEASE_NAME} openbluebridge/connector \
+              --version ${CONNECTOR_VERSION} \
+              --namespace ${cluster_namespace} \
+              --set vault.enabled=true \
+              --set cluster.config.${CONNECTOR_RELEASE_NAME}.type="${IOTHUB_CONNECTION_TYPE}" \
+              --set cluster.config.${CONNECTOR_RELEASE_NAME}.serviceaccountname="${CONNECTOR_RELEASE_NAME}" \
+              --set cluster.config.${CONNECTOR_RELEASE_NAME}.hashicorp.role="${CONNECTOR_RELEASE_NAME}" \
+              --set cluster.config.${CONNECTOR_RELEASE_NAME}.iothubsecretpath="${CONNECTOR_RELEASE_NAME}/data/iothub" \
+              --set cluster.secrets.${CONNECTOR_RELEASE_NAME}="null" 3>&1 1>/dev/null 2>&3-
+          fi
+        done
     elif [ "${RELEASE_NAME}" == "configuration-ui" ];
       then 
         echo "[ INFO ] Upgrading ${RELEASE_NAME} to v${VERSION} ...!"
@@ -330,40 +363,6 @@ then
     done
   fi
 fi
-#############################################################
-# Connector upgrade
-#############################################################
-CONNECTOR_LIST="$(kubectl get deployments -l app=connector --no-headers=true | awk {'print $1'})"
-CONNECTOR_VERSION="$(cat ${CURDIR}/../config.yml | grep -i connector | tr -d ' ' | awk -F ":" {'print $(NF)'})"
-for CONNECTOR_RELEASE_NAME in ${CONNECTOR_LIST}
-do
-  #Enable kube config secrets for vault
-  export VAULT_KEYSTORE_PATH="${HOME}/.obb"
-  export VAULT_TOKEN="$(cat ${VAULT_KEYSTORE_PATH}/vault/vaultkeys | jq -r '.root_token')"
-  kubectl -n ${cluster_namespace} exec -it vault-0 -- sh -c "export VAULT_TOKEN=${VAULT_TOKEN} && vault write auth/kubernetes/config \
-      issuer=\"https://kubernetes.default.svc.cluster.local\" \
-      disable_iss_validation=\"true\" \
-      token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" \
-      kubernetes_host=\"https://\$KUBERNETES_PORT_443_TCP_ADDR:443\" \
-      kubernetes_ca_cert=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)\"" > /dev/null 2>&1
-
-  #CURR_CONNECTOR_VER="$(helm ls --skip-headers -o json -f ${CONNECTOR_RELEASE_NAME} | jq -r .[].chart | awk -F '-' {'print $(NF)'})"
-  CURR_CONNECTOR_VER="$(helm ls --skip-headers | grep -w ${CONNECTOR_RELEASE_NAME} | awk {'print $(NF-1)'} | awk -F '-' {'print $(NF)'})"
-  if [ ! -z "$CURR_CONNECTOR_VER" ];
-  then 
-    IOTHUB_CONNECTION_TYPE=$(sops --decrypt --extract "[\"cluster\"][\"config\"][\"connector\"][\"type\"]" ${CURDIR}/../secrets.yaml)        
-    echo "[ INFO ] Upgrading ${CONNECTOR_RELEASE_NAME} to v${CONNECTOR_VERSION} ...!"
-    helm upgrade --install --wait ${CONNECTOR_RELEASE_NAME} openbluebridge/connector \
-      --version ${CONNECTOR_VERSION} \
-      --namespace ${cluster_namespace} \
-      --set vault.enabled=true \
-      --set cluster.config.${CONNECTOR_RELEASE_NAME}.type="${IOTHUB_CONNECTION_TYPE}" \
-      --set cluster.config.${CONNECTOR_RELEASE_NAME}.serviceaccountname="${CONNECTOR_RELEASE_NAME}" \
-      --set cluster.config.${CONNECTOR_RELEASE_NAME}.hashicorp.role="${CONNECTOR_RELEASE_NAME}" \
-      --set cluster.config.${CONNECTOR_RELEASE_NAME}.iothubsecretpath="${CONNECTOR_RELEASE_NAME}/data/iothub" \
-      --set cluster.secrets.${CONNECTOR_RELEASE_NAME}="null"
-  fi
-done
 ################################################
 # Cleanup unused services
 echo "[ INFO ] Cleaning up unused services."
