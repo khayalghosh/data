@@ -1,0 +1,18 @@
+---
+- name: Ansible Copy Vault files to remote dir
+  hosts: openbluebridge_kubernetes_nodes
+  tasks:
+    - name: Copy Kubectl
+      become: true
+      src: /usr/bin/kubectl
+      dest: /usr/bin/kubectl
+    - name: Copying file with playbook
+      become: true
+      copy:
+        src: "{{ lookup('env', 'HOME') }}/.obb"
+        dest: "{{ lookup('env', 'HOME')}}"
+    - name: Copying Kube Config
+      become: true
+      copy:
+        src: "{{ lookup('env', 'HOME') }}/.kube"
+        dest: "{{ lookup('env', 'HOME')}}"
