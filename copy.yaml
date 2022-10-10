@@ -2,12 +2,18 @@
 - name: Ansible Copy Vault files to remote dir
   hosts: openbluebridge_kubernetes_nodes
   tasks:
-    - name: Copy Kubectl
+    - name: Install jq
+      become: true
+      copy:
+        src: /usr/bin/jq
+        dest: /usr/bin/jq
+        mode: 755
+    - name: Install Kubectl
       become: true
       copy:
         src: /usr/bin/kubectl
         dest: /usr/bin/kubectl
-    - name: Copying file with playbook
+    - name: Copying VaultKeys
       become: true
       copy:
         src: "{{ lookup('env', 'HOME') }}/.obb"
