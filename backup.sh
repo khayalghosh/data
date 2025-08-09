@@ -17,7 +17,7 @@ cluster_addr = "[::]:8201"
 EOF
 
 if [[ $SERVER_TYPE == "dest" ]]
-    VAULT_PODS=$(kubectl -n openbluebridge get pods -l app.kubernetes.io/name=vault --no-headers | awk '{print $1}')
+    VAULT_PODS=$(kubectl -n <test> get pods -l app.kubernetes.io/name=vault --no-headers | awk '{print $1}')
     for VAULT_POD in ${VAULT_PODS}
     do
     if [ ! -z ${VAULT_POD} ];
